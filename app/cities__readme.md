@@ -11,7 +11,9 @@ that no question needed was not built at all.
 **Built from public releases by the Ministry of Housing and Urban Development,
 whose functions moved to the Ministry for Cities, Environment, Regions and
 Transport on 1 July 2026.** All 10 reconciliation checks pass. The published
-extract is 12.6 MB.
+extract is 10.2 MB.
+
+**Deployment:** **live** at <https://celnic-cities.streamlit.app>.
 
 ---
 
