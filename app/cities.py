@@ -32,7 +32,7 @@ SCREEN LAYOUT
 Tabs, left to right:
 
     1  📊 National Overview   real   prices and sales, nationally and by region
-    2  🗺️ Price Map           real   TA-level index on H3 hexagons
+    2  🗺️ Price Map           real   district prices as bubbles, animated by year
     3  💰 Area Explorer       real   one district, incl. the value-quartile cut
     4  📋 Data Explorer       real   the detail, filtered, with Excel export
     5  ⚙️ Pipeline            real   provenance, lineage, reconciliation
@@ -46,6 +46,7 @@ VISUAL VOCABULARY - the same meaning everywhere
     ACCENT red   #E4572E   change and pressure - annual % change
     INK    dark  #12312A   reference marks: the national baseline, tooltips
     blue→red ramp          price level on the map; red is more expensive
+    bubble AREA            the sized quantity, on a scale fixed across years
     yellow/black stripes   provenance warning; read before any figure
     ◇  hollow diamond      derived rather than measured
     📋 heading + 📥 Excel  every detail table, button right-justified
@@ -82,6 +83,7 @@ DuckDB connection behind the same function boundary. Every data method keeps its
 
 import io
 import sys
+import time
 from pathlib import Path
 
 import duckdb
@@ -212,6 +214,21 @@ def get_ta_latest(df_db_schema, stat_type):
         "SELECT TA_NAME, REGION, LAT, LON, HPI, ANNUAL_CHANGE_PCT, SALES_USED, "
         f"MEDIAN_PRICE, PERIOD FROM MART.M_HPI_TA_LATEST WHERE STAT_TYPE = '{stat_type}' "
         "AND HPI IS NOT NULL ORDER BY HPI DESC")
+
+
+def get_map_years(df_db_schema, stat_type):
+    """T2: every district in every year, for the animated map.
+
+    The WHOLE table for this statistical series is fetched once and filtered by
+    year in memory. At roughly 3,500 rows per series that costs nothing, and it
+    is what keeps the play button smooth: a database round trip inside the
+    animation loop would stutter at one frame every few seconds.
+    """
+    return run_query(
+        "SELECT YEAR, TA_NAME, REGION, LAT, LON, PERIOD_USED, MEDIAN_PRICE, "
+        "SALES_YEAR, EST_VALUE_YEAR, HPI, ANNUAL_CHANGE_PCT "
+        f"FROM MART.M_MAP_TA_YEAR WHERE STAT_TYPE = '{stat_type}' "
+        "ORDER BY YEAR, TA_NAME")
 
 
 def get_area_options(df_db_schema, area_type):
@@ -471,53 +488,166 @@ def render_tab_national(stat_type):
     right.plotly_chart(f3, use_container_width=True)
 
 
-def render_tab_map(stat_type):
-    """H3 hexagons over district centroids, coloured by the selected measure.
+SIZE_MEASURES = {
+    "Median sale price": ("MEDIAN_PRICE", "the district's own median sale price"),
+    "Estimated total sales value": ("EST_VALUE_YEAR",
+                                    "median price times sales that year - an estimate"),
+}
 
-    The caption states plainly that hexagons sit on centroids rather than
-    boundaries, and that hexagon size is a display choice - the prices are
-    measured, the position is not.
+
+def render_tab_map(stat_type):
+    """Bubbles over district centroids, sized by price, animated through the years.
+
+    Top row: what to size by, seconds between frames, max bubble size, play/pause.
+    Then a year slider, the map, and the detail table for the year on screen.
+
+    **Bubble area is proportional to the value, on a scale fixed across all
+    years.** Two decisions worth stating, because both change what the map means:
+
+    * Area, not radius, carries the value. Radius-proportional circles overstate
+      differences by squaring them - a district at twice the price would look
+      four times as big.
+    * The scale is global, not per-year. Normalising each year to its own maximum
+      would make the biggest bubble identical in 1980 and 2026, and the animation
+      would show nothing about prices rising. On a fixed scale the whole map
+      inflates over time, which is the actual story.
+
+    Bubbles are translucent and allowed to overlap: neighbouring districts
+    genuinely do overlap at these radii, and preventing it would mean shrinking
+    the bubbles or moving them off their centroids.
+
+    Playback is driven from the browser, so it pauses while the tab is hidden and
+    resumes when it is shown again. That is Streamlit's behaviour, not a fault,
+    and it is the right one - nothing should burn server time animating a map
+    nobody is looking at.
     """
-    df = get_ta_latest(df_db_schema, stat_type)
+    df = get_map_years(df_db_schema, stat_type)
     if df.empty:
-        st.warning("No district data for this statistical series.")
+        st.warning("No district series for this statistical series.")
         return
 
-    c1, c2 = st.columns([2, 1])
-    measure = c1.radio("Colour by", ["House price index", "Annual change %"],
-                       horizontal=True)
-    radius = c2.slider("Hexagon radius (m)", 4000, 30000, 12000, step=1000)
+    years = sorted(int(y) for y in df["YEAR"].unique())
+    if "map_year" not in st.session_state or st.session_state.map_year not in years:
+        st.session_state.map_year = years[-1]
+    st.session_state.setdefault("map_playing", False)
 
-    col = "HPI" if measure == "House price index" else "ANNUAL_CHANGE_PCT"
-    d = df[df[col].notna()].copy()
-    lo, hi = d[col].min(), d[col].max()
-    span = (hi - lo) or 1
-    d["_t"] = (d[col] - lo) / span
-    d["_r"] = (40 + 200 * d["_t"]).astype(int)
-    d["_g"] = (90 + 40 * (1 - d["_t"])).astype(int)
-    d["_b"] = (200 * (1 - d["_t"]) + 40).astype(int)
-    d["VALUE"] = d[col].round(1)
+    c1, c2, c3, c4 = st.columns([3, 1.3, 1.2, 1.3])
+    size_label = c1.radio(
+        "Size bubbles by", list(SIZE_MEASURES), horizontal=True,
+        help="Median sale price is the district's own price level - highest in "
+             "Queenstown-Lakes. Estimated total sales value is that price times "
+             "the number of sales, so it reflects market size, which is what puts "
+             "Auckland far ahead of everywhere else.")
+    secs = c2.number_input("Seconds per year", min_value=1, max_value=30,
+                           value=5, step=1)
+    max_km = c3.number_input("Max bubble (km)", min_value=10, max_value=120,
+                             value=45, step=5)
 
-    layer = pdk.Layer(
-        "ScatterplotLayer", data=d, get_position=["LON", "LAT"],
-        get_fill_color=["_r", "_g", "_b", 180], get_radius=radius,
-        pickable=True, stroked=True, get_line_color=[255, 255, 255, 120],
-    )
-    st.pydeck_chart(pdk.Deck(
-        layers=[layer],
-        initial_view_state=pdk.ViewState(latitude=WELLINGTON[0],
-                                         longitude=WELLINGTON[1], zoom=4.7),
-        map_provider="carto", map_style="light",
-        tooltip={"text": "{TA_NAME}\n{REGION}\n" + measure + ": {VALUE}"},
-    ))
-    st.caption(f"◇ **Position is derived.** Districts are drawn on bundled "
-               f"centroids, not boundaries — MCERT publishes area names without "
-               f"coordinates. Circle size is a display choice, not a measured "
-               f"extent. The prices are measured. Period **{d['PERIOD'].iloc[0]}**, "
-               f"series **{stat_type}**, {len(d)} districts published.")
+    if st.session_state.map_playing:
+        if c4.button("Pause", use_container_width=True, icon=":material/pause:"):
+            st.session_state.map_playing = False
+            st.rerun()
+    else:
+        if c4.button("Play", use_container_width=True,
+                     icon=":material/play_arrow:"):
+            # Starting on the last year would play nothing, so wrap to the start.
+            if st.session_state.map_year >= years[-1]:
+                st.session_state.map_year = years[0]
+            st.session_state.map_playing = True
+            st.session_state.map_last_tick = 0.0   # first frame draws at once
+            st.rerun()
 
-    detail_table(df.drop(columns=["LAT", "LON"]),
-                 f"Districts at {df['PERIOD'].iloc[0]} · {stat_type}", "ta_latest")
+    col, blurb = SIZE_MEASURES[size_label]
+    vmax = float(df[col].max())   # fixed across every year - see the docstring
+
+    @st.fragment(run_every=(f"{int(secs)}s" if st.session_state.map_playing else None))
+    def _frame():
+        # Advance on elapsed time, not merely on being re-entered. The fragment
+        # reruns for two reasons - the timer, and the year slider inside it
+        # re-rendering - so advancing unconditionally moves two years per tick
+        # and the configured seconds mean nothing. Gating on the clock makes the
+        # setting real whatever triggered the rerun.
+        if st.session_state.map_playing:
+            now = time.monotonic()
+            if now - st.session_state.get("map_last_tick", 0.0) >= int(secs) * 0.9:
+                st.session_state.map_last_tick = now
+                i = years.index(st.session_state.map_year)
+                if i + 1 < len(years):
+                    st.session_state.map_year = years[i + 1]
+                else:
+                    st.session_state.map_playing = False   # stop at the last year
+
+        st.select_slider("Year", options=years, key="map_year")
+        year = st.session_state.map_year
+        d = df[(df["YEAR"] == year) & df[col].notna()].copy()
+        if d.empty:
+            st.info(f"No district prices published for {year}.")
+            return
+
+        d["RADIUS"] = ((max_km * 1000) * (d[col] / vmax).clip(lower=0) ** 0.5)
+        # Total sales value spans roughly 300x across districts, so an
+        # area-proportional radius puts the smallest at about a kilometre -
+        # invisible at national zoom. The floor keeps every published
+        # district on the map; above it the encoding stays proportional.
+        d["RADIUS"] = d["RADIUS"].clip(lower=6000)
+
+        # Colour on the same quantity, so size and colour can never disagree.
+        lo, hi = d[col].min(), d[col].max()
+        tint = (d[col] - lo) / ((hi - lo) or 1)
+        d["_r"] = (40 + 200 * tint).astype(int)
+        d["_g"] = (110 - 40 * tint).astype(int).clip(lower=0)
+        d["_b"] = (200 - 160 * tint).astype(int).clip(lower=0)
+        d["PRICE_LABEL"] = d["MEDIAN_PRICE"].map(lambda v: f"${v:,.0f}")
+        d["SALES_LABEL"] = d["SALES_YEAR"].map(
+            lambda v: "n/a" if pd.isna(v) else f"{v:,.0f}")
+        d["VALUE_LABEL"] = d["EST_VALUE_YEAR"].map(
+            lambda v: "n/a" if pd.isna(v) else f"${v / 1e9:,.2f}bn")
+
+        layer = pdk.Layer(
+            "ScatterplotLayer", data=d, get_position=["LON", "LAT"],
+            get_fill_color=["_r", "_g", "_b", 120],       # translucent: overlaps read
+            get_radius="RADIUS", pickable=True, stroked=True,
+            get_line_color=[255, 255, 255, 160], line_width_min_pixels=1,
+        )
+        st.pydeck_chart(pdk.Deck(
+            layers=[layer],
+            initial_view_state=pdk.ViewState(latitude=-41.0, longitude=173.0,
+                                             zoom=4.4),
+            map_provider="carto", map_style="light",
+            tooltip={"text": "{TA_NAME}\n{REGION}\n"
+                             "Median price: {PRICE_LABEL}\n"
+                             "Sales: {SALES_LABEL}\n"
+                             "Est. total value: {VALUE_LABEL}"},
+        ))
+
+        top = d.nlargest(1, col).iloc[0]
+        if year == years[-1]:
+            st.caption(
+                f":orange[**{year} is a part year.**] The series ends at "
+                f"{st.session_state.get('_latest_period', top['PERIOD_USED'])}, so "
+                f"sales and total value for {year} cover only the months published "
+                f"so far and are not comparable with a full year. Median price is "
+                f"unaffected - it is a level, not a total.")
+        st.caption(
+            f"**{year}** - sized by {size_label.lower()} ({blurb}). Largest: "
+            f"**{top['TA_NAME']}**. {len(d)} districts published, series "
+            f"**{stat_type}**. Bubble **area** is proportional to the value on a "
+            f"scale fixed across {years[0]}-{years[-1]}, so the whole map grows as "
+            f"prices rise. Each year's price is that district's last published "
+            f"month ({top['PERIOD_USED']} for {top['TA_NAME']}), never an average "
+            f"of the twelve. Estimated total value uses the median as a stand-in "
+            f"for the mean, so it is an estimate. Position is derived: districts "
+            f"sit on bundled centroids, not boundaries, and bubble size is a "
+            f"quantity, not an extent."
+        )
+
+        detail_table(
+            d[["TA_NAME", "REGION", "YEAR", "PERIOD_USED", "MEDIAN_PRICE",
+               "SALES_YEAR", "EST_VALUE_YEAR", "HPI", "ANNUAL_CHANGE_PCT"]]
+            .sort_values(col, ascending=False),
+            f"Districts in {year} - {stat_type}", "map_year_detail")
+
+    _frame()
 
 
 def render_tab_area(stat_type):
