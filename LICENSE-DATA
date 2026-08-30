@@ -16,10 +16,33 @@ method, not an official publication of any agency, and no agency named in
 ATTRIBUTION.md has endorsed it. Do not rely on any figure here for
 operational, policy or reporting purposes — go to the publisher's own release.
 
-LICENCE STATUS NOT VERIFIED. Both source datasets are recorded as CC BY 4.0,
-but that value is a build default rather than a checked fact; see the
-"Licence to confirm" section of ATTRIBUTION.md. Anyone redistributing this
-data should confirm the publisher's terms first.
+LICENCE STATUS VERIFIED AT SOURCE, 30 AUGUST 2026. The two source datasets do
+NOT share one licence, and the previously recorded "CC BY 4.0" for both was a
+build default rather than a checked fact.
+
+  * Property and Sales Statistics (the only source of charted figures) -
+    CC BY 4.0. Read from the publisher's site-wide copyright statement at
+    https://www.hud.govt.nz/about-us/copyright-and-disclaimer, which licenses
+    the material "for re-use under a Creative Commons Attribution 4.0
+    International Licence". This is an AGENCY-WIDE statement; the dataset's
+    own page asserts no licence. The grant excludes logos, emblems,
+    trademarks, design elements, photography and imagery, and third-party
+    material - none of which is redistributed here.
+
+  * MHUD catalogue on data.govt.nz - NOT UNIFORM. Read per package from CKAN:
+    23 of 27 packages are CC BY 3.0 NZ (license_id CC-BY-NZ-3.0), and 4 state
+    no licence at all. No package is CC BY 4.0. None of this catalogue's data
+    ships in this repository - only derived build metadata about it.
+
+Separately, 23 of those 27 packages derive from Stats NZ collections, whose
+outputs carry confidentiality conditions under the Statistics Act 1975
+(suppression of small cells, random rounding to base three). Those conditions
+attach to the figures, not to the metadata, and no such figure is republished
+here. See ATTRIBUTION.md.
+
+Anyone redistributing data from this repository should read ATTRIBUTION.md and
+DATA_SOURCES.yaml, which record the licence, its basis and its evidence URL
+per dataset.
 
 SYNTHETIC DATA. This platform generates none. Every figure in the published
 extract is measured from a public release. Where any synthetic or modelled

@@ -405,8 +405,10 @@ def render_sidebar():
                     "- No synthetic data in this platform.")
         with st.expander("ℹ️ About"):
             st.markdown(
-                "Built by Celnic Consulting from public data released under "
-                "CC BY 4.0. Not an official government product.\n\n"
+                "Built by Celnic Consulting from public data. The charted "
+                "figures are used under **CC BY 4.0**, verified against the "
+                "publisher's copyright page on 30 Aug 2026. Not an official "
+                "government product.\n\n"
                 "**1 July 2026** — the Ministry for the Environment, the "
                 "Ministry of Housing and Urban Development, the Ministry of "
                 "Transport and the local government functions of the Department "
@@ -787,10 +789,19 @@ def render_attribution():
     """
     with st.expander("Data sources & attribution"):
         st.markdown(
-            "Built on open data used under **CC BY 4.0** — modified "
-            "(downloaded, staged, transformed) and not synthetic; "
-            "demonstration of method, not published statistics. Full "
-            "provenance: "
+            "**Charted figures** — Property and Sales Statistics (incl. the "
+            "MCERT House Price Index), © Te Tūāpapa Kura Kāinga / MHUD, now "
+            "MCERT, used under **CC BY 4.0** "
+            "([verified at source](https://www.hud.govt.nz/about-us/copyright-and-disclaimer), "
+            "30 Aug 2026 — an agency-wide statement, not a dataset-specific "
+            "one).\n\n"
+            "**Pipeline metadata** — derived from the MHUD data.govt.nz "
+            "catalogue, which is **not uniformly licensed**: 23 of 27 packages "
+            "are CC BY 3.0 NZ and 4 state no licence. None of its data is "
+            "republished here.\n\n"
+            "Data is modified (downloaded, staged, transformed) and not "
+            "synthetic; demonstration of method, not published statistics. "
+            "Full provenance: "
             "[ATTRIBUTION.md](https://github.com/celnicconsulting/cities/blob/main/ATTRIBUTION.md)."
         )
 

@@ -1,28 +1,75 @@
 # DATA_SOURCES.yaml - provenance and licence manifest
 generated_by: show-me-org attribution pass, 2026-08-30
+licences_verified_at_source: "2026-08-30"
 repository: https://github.com/celnicconsulting/cities
 note: >
   This repository publishes derived artefacts only (the extracts the app
   reads). The raw downloads and staging tables named under upstream_files live
   in the private working tree and are not redistributed here.
+licence_basis_key:
+  dataset_page: >
+    Read from this dataset's own page, or from its own catalogue record.
+  agency_record: >
+    Only an agency-wide or site-wide statement was found - nothing specific to
+    this dataset.
+  unverified: >
+    Could not be established.
 datasets:
   - id: hud_property_and_sales
     title: "Property and Sales Statistics (including the MCERT House Price Index)"
-    publisher: "Ministry of Housing and Urban Development (Te Tuapapa Kura Kainga) - functions transferred to the Ministry for Cities, Environment, Regions and Transport on 1 July 2026"
+    publisher: "Ministry for Cities, Environment, Regions and Transport (MCERT). Published under the predecessor brand Te Tuapapa Kura Kainga - Ministry of Housing and Urban Development, whose functions transferred to MCERT on 1 July 2026."
     source_url: "https://www.hud.govt.nz/stats-and-insights/property-and-sales-statistics/about-the-dashboard"
-    licence: "CC BY 4.0"            # NOT verified - see licence_note
+    licence: "CC BY 4.0"
     licence_url: "https://creativecommons.org/licenses/by/4.0/"
+    licence_basis: agency_record
+    licence_evidence: "https://www.hud.govt.nz/about-us/copyright-and-disclaimer"
+    licence_evidence_corroborating: "https://www.mcert.govt.nz/copyright/"
     licence_issue: true
     licence_note: >
-      UNVERIFIED. "CC BY 4.0" is the dataclass default in
-      scripts/org_sources.py and no Source entry overrides it, so the value
-      carried through META_SOURCE_REGISTER is assumed rather than checked. The
-      only licence evidence the build actually captured is the saved page
-      footer in raw/_pages, which reads "(c) 2026 Te Tuapapa Kura Kainga -
-      Ministry of Housing and Urban Development" and links to a "Copyright and
-      disclaimer" page that was never fetched. NZ agency releases are usually
-      CC BY 4.0 under NZGOAL, but that is not on record here. Confirm the terms
-      on the copyright page before relying on the CC BY claim.
+      VERIFIED AT AGENCY LEVEL, NOT AT DATASET LEVEL. Checked online on
+      2026-08-30. The dataset's own page (the "about the dashboard" page listed
+      as source_url) carries no licence, terms-of-use or reuse statement of its
+      own - only a general disclaimer, "This information is provided for
+      general information purposes only. It should not be relied upon for
+      financial, investment, valuation, or other decision-making purposes.",
+      and the footer "(c) 2026 Te Tuapapa Kura Kainga - Ministry of Housing and
+      Urban Development". The "Copyright and disclaimer" page that footer links
+      to has now been fetched, and it states: "Crown Copyright (c) Te Tuapapa
+      Kura Kainga - Ministry of Housing and Urban Development ... this
+      copyright material is licensed for re-use under a Creative Commons
+      Attribution 4.0 International Licence. You are free to copy, distribute
+      and adapt the material, as long as you attribute it to us and abide by
+      other licence terms." So "CC BY 4.0" is now a checked fact rather than
+      the dataclass default it previously was - but it is a site-wide statement
+      covering hud.govt.nz, not a statement attached to this dataset. Hence
+      licence_basis: agency_record and licence_issue: true.
+    licence_exclusions: >
+      The CC BY 4.0 grant does not extend to logos, emblems and trademarks, to
+      the website's design elements, or to any photography and imagery, which
+      may not be re-used without express permission. Third-party material on
+      the site is excluded and permission must be sought from its own copyright
+      holder. None of these excluded classes is redistributed here - what ships
+      is tabular figures derived from the published workbook.
+    licence_at_mog_transition: >
+      Checked on 2026-08-30. hud.govt.nz still resolves and has NOT redirected:
+      https://www.hud.govt.nz/ returns HTTP 200 in its own right (behind an
+      Imperva CDN), and both the dataset page and the copyright page are still
+      live under that domain, still carrying the Te Tuapapa Kura Kainga footer
+      and a banner reading "On 1 July 2026, the Ministry of Housing and Urban
+      Development is now part of the new Ministry for Cities, Environment,
+      Regions and Transport." The successor ministry's own site exists at
+      https://www.mcert.govt.nz/ (mcert.govt.nz 301s to www) and its copyright
+      page states: "Unless otherwise stated (either below or within specific
+      items or collections), this copyright material is licensed for re-use
+      under a Creative Commons Attribution 4.0 International Licence." The
+      licence statement therefore did NOT change at the machinery-of-government
+      transition - predecessor and successor both assert CC BY 4.0 with the
+      same logo/imagery/third-party exclusions. Data retrieved on 2026-08-27
+      was retrieved from hud.govt.nz after the 1 July 2026 transfer, so the
+      operative statement is the hud.govt.nz "Copyright and disclaimer" page as
+      it stood on that date; the MCERT statement is identical in substance and
+      is recorded as corroboration. Attribution should name the current
+      publisher (MCERT) and the releasing brand (Te Tuapapa Kura Kainga - HUD).
     retrieved: "2026-08-27"
     modified: true
     modifications: >
@@ -43,7 +90,9 @@ datasets:
       mixed. The dashboard itself is an embedded Power BI report with no
       export - only the workbook on the about page is machine-readable.
       Latitude and longitude are not published by the source; see
-      derived_reference below.
+      derived_reference below. The publisher's own disclaimer applies: the
+      information is for general information purposes only and must not be
+      relied on for financial, investment, valuation or other decision-making.
     files:
       - data/cities_public.duckdb   # MART.M_HPI_NATIONAL, M_HPI_REGION, M_HPI_AREA,
                                     # M_HPI_QUARTILE, M_SALES_AREA, M_HPI_TA_LATEST,
@@ -56,22 +105,66 @@ datasets:
 
   - id: hud_datagovt_catalogue
     title: "Ministry of Housing and Urban Development catalogue on data.govt.nz"
-    publisher: "Ministry of Housing and Urban Development (Te Tuapapa Kura Kainga), published via data.govt.nz"
+    publisher: "Ministry of Housing and Urban Development (Te Tuapapa Kura Kainga), published via data.govt.nz. Functions transferred to MCERT on 1 July 2026; the CKAN organisation slug is unchanged."
     source_url: "https://catalogue.data.govt.nz/api/3/action/package_search?fq=organization:ministry-of-housing-and-urban-development&rows=100"
-    licence: "CC BY 4.0"            # NOT verified - see licence_note
-    licence_url: "https://creativecommons.org/licenses/by/4.0/"
+    licence: "NOT UNIFORM - 23 of 27 packages CC BY 3.0 NZ, 4 of 27 with no licence stated. See licence_distribution."
+    licence_url: "https://creativecommons.org/licenses/by/3.0/nz/"
+    licence_basis: dataset_page      # per-package CKAN records read directly; 4 packages carry no value
+    licence_evidence: "https://catalogue.data.govt.nz/api/3/action/package_search?fq=organization:ministry-of-housing-and-urban-development&rows=100"
+    licence_evidence_corroborating: "https://catalogue.data.govt.nz/api/3/action/organization_show?id=ministry-of-housing-and-urban-development&include_datasets=true"
     licence_issue: true
     licence_note: >
-      UNVERIFIED, and mixed by construction. As with the primary source, the
-      "CC BY 4.0" value is the dataclass default in scripts/org_sources.py. A
-      CKAN search response carries a per-package licence_id, but the build
-      never captured it - no licence_id or licence_title appears anywhere under
-      raw/ - so the licence of each of the 27 packages is unrecorded. Licence
-      on a catalogue is a per-package question, not an agency-wide one, and
-      several landed packages are Household Economic Survey derivatives
-      carrying Stats NZ suppression and randomised rounding, which may attach
-      further conditions of use. Re-run discovery capturing licence_id per
-      package before relying on the CC BY claim.
+      VERIFIED PER PACKAGE, AND NOT UNIFORM. Checked online on 2026-08-30 by
+      reading license_id, license_title and license_url from every one of the
+      27 CKAN package records (package_search returns count: 27 and all 27
+      results; organization_show returns package_count: 27 but only the first
+      10 packages, so package_search is the authoritative read). The previously
+      recorded "CC BY 4.0" was the dataclass default in scripts/org_sources.py
+      and is WRONG on two counts: no package on this catalogue is CC BY 4.0,
+      and no single licence covers the organisation. 23 packages carry
+      license_id "CC-BY-NZ-3.0" / license_title "Creative Commons Attribution
+      3.0 New Zealand" / license_url
+      "https://creativecommons.org/licenses/by/3.0/nz/". The remaining 4 carry
+      an empty license_id, an empty license_title and a null license_url -
+      CKAN's "License not specified" - so no licence has been asserted for
+      them by the publisher and they are recorded as unverified, not as CC BY
+      by inference. None of this catalogue's data is redistributed here; only
+      derived build metadata about it ships.
+    licence_distribution:
+      - licence: "CC BY 3.0 NZ (Creative Commons Attribution 3.0 New Zealand)"
+        licence_id: "CC-BY-NZ-3.0"
+        licence_url: "https://creativecommons.org/licenses/by/3.0/nz/"
+        packages: 23
+        licence_basis: dataset_page
+      - licence: "Not specified by the publisher"
+        licence_id: ""
+        licence_url: null
+        packages: 4
+        licence_basis: unverified
+        reason: >
+          CKAN returns license_id "" and license_url null for these records, so
+          the publisher has asserted no licence. No agency-level statement on
+          data.govt.nz supplies one for them, and CC BY is not inferred.
+        package_names:
+          - hes-warm-dry-damp-mould-2021-ethnicity      # HES Warm and Dry / Damp or Mould 2021 by ethnicity
+          - hes-tenure-ethnicity-2018-2021              # HES Tenure by Ethnicity 2018 - 2021
+          - hes-lowest-quartile-and-quintile-household-income-gross-and-disposable
+          - hes-property-ownership                      # HES: Property Ownership
+    upstream_statistics_conditions: >
+      23 of the 27 packages are derived from Stats NZ collections (17 from the
+      Household Economic Survey, the rest from the Census of Population and
+      Dwellings or the Integrated Data Infrastructure), and the licence on the
+      MHUD catalogue record does not displace the conditions Stats NZ attaches
+      to the underlying outputs. Those conditions are confidentiality controls
+      under the Statistics Act 1975: cells based on fewer than five people or
+      households are suppressed in released HES tables, and counts are subject
+      to random rounding (base three), so a published cell is not an exact
+      count. In handling terms, applied throughout this build: suppressed
+      values are held as NULL and never as zero, randomly rounded series are
+      never differenced, and total-response ethnicity categories are never
+      summed or differenced because a respondent may appear in more than one.
+      These conditions attach to the figures themselves, not to the metadata,
+      and none of these figures is republished here.
     retrieved: "2026-08-27"
     modified: true
     modifications: >
@@ -105,6 +198,9 @@ derived_reference:
     publisher: "Celnic Consulting (curated in scripts/org_geography.py)"
     source_url: "n/a - hand-curated, not downloaded"
     licence: "MIT, as build output covered by this repository's LICENSE"
+    licence_basis: dataset_page      # authored here; this repository's own LICENSE is the record
+    licence_evidence: "LICENSE (in this repository)"
+    licence_issue: false
     retrieved: "n/a"
     modified: true
     modifications: >
@@ -121,8 +217,9 @@ derived_reference:
 sources_registered_not_ingested:
   # These appear in MART.META_SOURCE_REGISTER, which ships so the Pipeline tab
   # can show the exclusions rather than assert them. No data from them is in
-  # this repository. Their "CC BY 4.0" values in that table are the same
-  # unverified dataclass default and should not be read as a licence check.
+  # this repository. Their "CC BY 4.0" values in that table are the unverified
+  # dataclass default and must not be read as a licence check - the register is
+  # a shipped build artefact and has not been rebuilt by this attribution pass.
   - id: D2
     name: "Housing statistics and insights (hud.govt.nz)"
     reason: >

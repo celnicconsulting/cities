@@ -5,9 +5,12 @@ property sales statistics — monthly, back to **1970**, at national, regional,
 territorial authority and Auckland local board grain, cut by property value
 quartile.
 
-> **Data & licence.** Built on open data used under CC BY 4.0 — see
+> **Data & licence.** The charted data is used under **CC BY 4.0**, verified at
+> source on 30 August 2026 against the publisher's copyright page. The
+> catalogue metadata is **not uniformly licensed** — 23 of 27 packages are
+> CC BY 3.0 NZ and 4 state no licence. See
 > [ATTRIBUTION.md](ATTRIBUTION.md) and [DATA_SOURCES.yaml](DATA_SOURCES.yaml)
-> for every source, licence, and modification. Demonstration of method only:
+> for every source, licence, basis and modification. Demonstration of method only:
 > the data is modified, and must not be relied on for
 > operational, policy, or reporting purposes.
 
@@ -38,9 +41,21 @@ quartile.
 
 Published by the **Ministry of Housing and Urban Development** (Te Tūāpapa Kura
 Kāinga), whose functions transferred to the **Ministry for Cities, Environment,
-Regions and Transport** on 1 July 2026. Recorded as **CC BY 4.0** — see
-[ATTRIBUTION.md](ATTRIBUTION.md), which flags that the licence is assumed from
-a build default and has not been verified against the publisher's terms.
+Regions and Transport** (MCERT) on 1 July 2026. MCERT is the current publisher;
+`hud.govt.nz` still resolves and has not redirected.
+
+**CC BY 4.0**, verified at source on 30 August 2026 against the publisher's
+[Copyright and disclaimer](https://www.hud.govt.nz/about-us/copyright-and-disclaimer)
+page — "this copyright material is licensed for re-use under a Creative Commons
+Attribution 4.0 International Licence". The licence statement did not change at
+the machinery-of-government transition: MCERT's own copyright page asserts the
+same licence. This is an **agency-wide** statement, not one attached to this
+dataset — the dataset's own page states no licence — so
+[ATTRIBUTION.md](ATTRIBUTION.md) marks it †.
+
+The secondary source, the MHUD catalogue on data.govt.nz, is **not uniformly
+licensed**: 23 of its 27 packages are CC BY 3.0 NZ and 4 state no licence at
+all. None of its data ships here, only build metadata about it.
 
 Primary source: the Property and Sales Statistics workbook, published alongside
 the [Property and Sales Statistics dashboard](https://www.hud.govt.nz/stats-and-insights/property-and-sales-statistics/about-the-dashboard),
@@ -95,6 +110,10 @@ Two licences apply, and they cover different things.
   URL, licence, retrieval date, modifications) and
   [`ATTRIBUTION.md`](ATTRIBUTION.md) for the reader-facing summary.
 
-Source data is recorded as CC BY 4.0, but that value is a build default rather
-than a verified fact — see the "Licence to confirm" section of
-[`ATTRIBUTION.md`](ATTRIBUTION.md) before redistributing it.
+Licences were verified at source on 30 August 2026. The charted data is
+**CC BY 4.0** on the publisher's agency-wide copyright statement; the catalogue
+metadata source is **not uniformly licensed** (23 of 27 packages CC BY 3.0 NZ,
+4 with no licence stated). Read the "Licence basis" section of
+[`ATTRIBUTION.md`](ATTRIBUTION.md) before redistributing anything — it also
+records the Stats NZ suppression and random-rounding conditions that attach to
+the HES-derived figures upstream.
