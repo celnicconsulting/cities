@@ -1,0 +1,161 @@
+# DATA_SOURCES.yaml - provenance and licence manifest
+generated_by: show-me-org attribution pass, 2026-08-30
+repository: https://github.com/celnicconsulting/cities
+note: >
+  This repository publishes derived artefacts only (the extracts the app
+  reads). The raw downloads and staging tables named under upstream_files live
+  in the private working tree and are not redistributed here.
+datasets:
+  - id: hud_property_and_sales
+    title: "Property and Sales Statistics (including the MCERT House Price Index)"
+    publisher: "Ministry of Housing and Urban Development (Te Tuapapa Kura Kainga) - functions transferred to the Ministry for Cities, Environment, Regions and Transport on 1 July 2026"
+    source_url: "https://www.hud.govt.nz/stats-and-insights/property-and-sales-statistics/about-the-dashboard"
+    licence: "CC BY 4.0"            # NOT verified - see licence_note
+    licence_url: "https://creativecommons.org/licenses/by/4.0/"
+    licence_issue: true
+    licence_note: >
+      UNVERIFIED. "CC BY 4.0" is the dataclass default in
+      scripts/org_sources.py and no Source entry overrides it, so the value
+      carried through META_SOURCE_REGISTER is assumed rather than checked. The
+      only licence evidence the build actually captured is the saved page
+      footer in raw/_pages, which reads "(c) 2026 Te Tuapapa Kura Kainga -
+      Ministry of Housing and Urban Development" and links to a "Copyright and
+      disclaimer" page that was never fetched. NZ agency releases are usually
+      CC BY 4.0 under NZGOAL, but that is not on record here. Confirm the terms
+      on the copyright page before relying on the CC BY claim.
+    retrieved: "2026-08-27"
+    modified: true
+    modifications: >
+      Downloaded (landing page scraped for the month-versioned workbook URL),
+      landed to RAW, staged to STG_HPI / STG_SALES, then transformed into the
+      MART tables shipped in data/cities_public.duckdb - filtered by area type
+      and value quartile, joined across the Sales and House Price Index sheets,
+      annual change converted from a published proportion to a percentage,
+      aggregated to year x district for the map, and joined to bundled
+      territorial-authority centroids to give each district a plotting
+      position.
+    caveats: >
+      One monthly vintage is held (2026-08). The publisher recalculates the
+      whole 1980-onwards series every month, so these figures are this
+      vintage's estimate of the full series, not a fixed history, and vintages
+      must never be differenced. The workbook publishes two statistics
+      ("Monthly" and "3-Month rolling") in a single sheet and they are never
+      mixed. The dashboard itself is an embedded Power BI report with no
+      export - only the workbook on the about page is machine-readable.
+      Latitude and longitude are not published by the source; see
+      derived_reference below.
+    files:
+      - data/cities_public.duckdb   # MART.M_HPI_NATIONAL, M_HPI_REGION, M_HPI_AREA,
+                                    # M_HPI_QUARTILE, M_SALES_AREA, M_HPI_TA_LATEST,
+                                    # M_MAP_TA_YEAR, M_LATEST, STG_VINTAGE,
+                                    # STG_AREA_ALIAS, VALIDATION_RESULTS
+    upstream_files:
+      - raw/HUD/2026-08/Property-and-Sales-data-download-August-2026__e754fc8f.xlsx
+      - raw/HUD/2026-08/MCERT-HPI-Methodology-Paper-August-2026__29fca47e.pdf
+      - stage/HUD__PROPERTY_AND_SALES/*.parquet
+
+  - id: hud_datagovt_catalogue
+    title: "Ministry of Housing and Urban Development catalogue on data.govt.nz"
+    publisher: "Ministry of Housing and Urban Development (Te Tuapapa Kura Kainga), published via data.govt.nz"
+    source_url: "https://catalogue.data.govt.nz/api/3/action/package_search?fq=organization:ministry-of-housing-and-urban-development&rows=100"
+    licence: "CC BY 4.0"            # NOT verified - see licence_note
+    licence_url: "https://creativecommons.org/licenses/by/4.0/"
+    licence_issue: true
+    licence_note: >
+      UNVERIFIED, and mixed by construction. As with the primary source, the
+      "CC BY 4.0" value is the dataclass default in scripts/org_sources.py. A
+      CKAN search response carries a per-package licence_id, but the build
+      never captured it - no licence_id or licence_title appears anywhere under
+      raw/ - so the licence of each of the 27 packages is unrecorded. Licence
+      on a catalogue is a per-package question, not an agency-wide one, and
+      several landed packages are Household Economic Survey derivatives
+      carrying Stats NZ suppression and randomised rounding, which may attach
+      further conditions of use. Re-run discovery capturing licence_id per
+      package before relying on the CC BY claim.
+    retrieved: "2026-08-27"
+    modified: true
+    modifications: >
+      98 catalogue resources downloaded and landed to RAW as 119 cell-grid
+      tables. None of the catalogue data itself is published in this
+      repository. What ships is derived metadata about it - the download
+      manifest (file name, URL, byte count, MD5, fetch timestamp) and the RAW
+      catalogue summary (schema, table name, layout, row and column counts,
+      period span, cadence) - which the app's Pipeline tab reads.
+    caveats: >
+      Resource format values on this catalogue are dirty (.CSV, .XLXS, .XSLX,
+      ZIP/CSV), so magic bytes were sniffed rather than the format field
+      trusted. HES-derived packages carry Stats NZ suppression and randomised
+      rounding: suppressed values are held as NULL and never zero, randomly
+      rounded series are never differenced, and total-response ethnicity is
+      never summed or differenced.
+    files:
+      - data/cities_public.duckdb   # MART.META_DOWNLOAD (98 of 100 rows),
+                                    # MART.META_RAW_CATALOG (119 of 122 rows)
+    upstream_files:
+      - raw/HUD/*/*.xlsx
+      - raw/HUD/*/*.csv
+      - raw/HUD/*/*.zip
+      - stage/HUD__CATALOGUE/*.parquet
+
+derived_reference:
+  # Not sourced from a third party: authored inside the build, so no upstream
+  # licence attaches. Recorded here because it ships as data in the extract.
+  - id: nz_ta_centroids
+    title: "New Zealand territorial authority and Auckland local board reference geography"
+    publisher: "Celnic Consulting (curated in scripts/org_geography.py)"
+    source_url: "n/a - hand-curated, not downloaded"
+    licence: "MIT, as build output covered by this repository's LICENSE"
+    retrieved: "n/a"
+    modified: true
+    modifications: >
+      67 territorial authorities and 21 Auckland local boards with region and
+      an approximate population-weighted centroid, reused from the
+      kainga_ora_housing_nz build. Bundled rather than downloaded because Stats
+      NZ's Geographic Data Service requires a registered API key for every
+      download, which would stop anyone rebuilding after a clone. These are
+      approximate centroids, not boundary polygons and not SA2 centroids: map
+      position is derived, map values are measured.
+    files:
+      - data/cities_public.duckdb   # MART.STG_DIM_TA (67 rows)
+
+sources_registered_not_ingested:
+  # These appear in MART.META_SOURCE_REGISTER, which ships so the Pipeline tab
+  # can show the exclusions rather than assert them. No data from them is in
+  # this repository. Their "CC BY 4.0" values in that table are the same
+  # unverified dataclass default and should not be read as a licence check.
+  - id: D2
+    name: "Housing statistics and insights (hud.govt.nz)"
+    reason: >
+      Registered for ingest but no file landed - zero rows in the download
+      manifest. The Public Housing Quarterly Report ceased after December 2023
+      and its successor is an embedded Power BI report with no export.
+  - id: D4
+    name: "Ministry of Transport statistics"
+    reason: >
+      Not ingested. The Imperva/Incapsula session cookie expires within about
+      ten minutes of harvesting, so the source cannot run unattended; the
+      statistics index is client-side rendered; and the quarterly fleet series
+      is a Tableau story that returns HTTP 200 with a zero-byte body. Some
+      fleet data is published by NZTA Waka Kotahi, a separate publisher that
+      did not merge into MCERT.
+  - id: D5
+    name: "Ministry for the Environment catalogue and reporting"
+    reason: >
+      Not ingested. The 1,138 packages / 7,475 resources are a spatial-data
+      service mirror - the same layer republished in eight formats - rather
+      than a statistics catalogue.
+  - id: D6
+    name: "Local government (DIA functions transferred to MCERT)"
+    reason: >
+      Not ingested. Separating the transferred local-government functions from
+      the rest of DIA is a scoping question the work packet does not answer.
+
+synthetic_data:
+  present: false
+  note: >
+    This platform generates none. The work packet proposed four synthetic
+    tables (SYN_PROPERTY_SALE, SYN_HOUSEHOLD_AFFORDABILITY, SYN_VEHICLE,
+    SYN_GEO_BRIDGE); design/bridge_gaps.md records all four as dropped or
+    replaced, there is no 08_synthetic.py in the pipeline and no SYN schema in
+    any database. Every figure in the extract is measured from published
+    releases. The only derived element is map position.

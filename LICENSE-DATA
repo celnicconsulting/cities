@@ -1,0 +1,28 @@
+DATA LICENCE NOTICE
+===================
+
+The MIT licence in LICENSE covers the CODE in this repository only — the
+Streamlit application, its helper modules and the build scripts. It does not
+grant any rights in the data.
+
+Source data remains under its publishers' licences. Every dataset shipped in
+data/cities_public.duckdb, its publisher, its source URL, the licence recorded
+for it, the date it was retrieved and the modifications applied are listed in
+DATA_SOURCES.yaml, and summarised for readers in ATTRIBUTION.md.
+
+The data in this repository has been MODIFIED: downloaded, landed, staged,
+filtered, joined, aggregated and reshaped. It is a demonstration of a build
+method, not an official publication of any agency, and no agency named in
+ATTRIBUTION.md has endorsed it. Do not rely on any figure here for
+operational, policy or reporting purposes — go to the publisher's own release.
+
+LICENCE STATUS NOT VERIFIED. Both source datasets are recorded as CC BY 4.0,
+but that value is a build default rather than a checked fact; see the
+"Licence to confirm" section of ATTRIBUTION.md. Anyone redistributing this
+data should confirm the publisher's terms first.
+
+SYNTHETIC DATA. This platform generates none. Every figure in the published
+extract is measured from a public release. Where any synthetic or modelled
+data is present in a build of this shape it is demonstration-only and carries
+no statistical meaning; the sole derived element here is map position, which
+uses approximate district centroids bundled with the build.

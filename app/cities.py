@@ -777,6 +777,24 @@ def render_tab_build_notes():
     st.markdown(get_build_notes(notes_fingerprint(BUILD_NOTES)))
 
 
+def render_attribution():
+    """Collapsed attribution line below the tabs, on every page.
+
+    The sidebar About expander says who built this; this says whose data it is
+    and where the full provenance manifest lives. It sits at the bottom of
+    `main` so it appears under whichever tab is open, rather than only under
+    the one tab a reader might never select.
+    """
+    with st.expander("Data sources & attribution"):
+        st.markdown(
+            "Built on open data used under **CC BY 4.0** — modified "
+            "(downloaded, staged, transformed) and not synthetic; "
+            "demonstration of method, not published statistics. Full "
+            "provenance: "
+            "[ATTRIBUTION.md](https://github.com/celnicconsulting/cities/blob/main/ATTRIBUTION.md)."
+        )
+
+
 # ====================MAIN====================
 def main():
     st.title("MCERT | Cities, Environment, Regions and Transport")
@@ -797,6 +815,8 @@ def main():
         render_tab_pipeline()
     with tabs[5]:
         render_tab_build_notes()
+
+    render_attribution()
 
 
 if __name__ == "__main__":
