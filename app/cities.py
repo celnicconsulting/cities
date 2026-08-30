@@ -340,7 +340,12 @@ def build_styled_excel(df: pd.DataFrame, title: str) -> bytes:
             for j in range(1, ncols + 1):
                 ws.cell(row=i, column=j).fill = PatternFill("solid", fgColor="F2F7F5")
     for j, col in enumerate(df.columns, start=1):
-        width = max(10, min(38, int(df[col].astype(str).str.len().max() or 10) + 2))
+        # A column that is entirely null gives a NaN/NA maximum, and int(NA)
+        # raises - which crashed the export on early years, where a whole
+        # measure (annual change in 1980) has no published values at all.
+        longest = df[col].astype(str).str.len().max()
+        longest = 0 if pd.isna(longest) else int(longest)
+        width = max(10, min(38, max(longest, len(str(col))) + 2))
         ws.column_dimensions[get_column_letter(j)].width = width
     ws.freeze_panes = "A3"
     ws.auto_filter.ref = f"A2:{get_column_letter(ncols)}{len(df) + 2}"
@@ -349,16 +354,26 @@ def build_styled_excel(df: pd.DataFrame, title: str) -> bytes:
     return buf.getvalue()
 
 
-def detail_table(df: pd.DataFrame, title: str, key: str):
-    """📋 heading with the 📥 Excel button right-justified on the same row."""
+def detail_table(df: pd.DataFrame, title: str, key: str, excel: bool = True):
+    """📋 heading with the 📥 Excel button right-justified on the same row.
+
+    `excel=False` drops the button. Streamlit needs a download_button's bytes at
+    render time, so the workbook is built on every rerun it appears in - fine for
+    a static tab, but on the animated map it rebuilt a styled openpyxl workbook
+    once per frame and put a floor of several seconds under the frame rate. The
+    export is only useful on a frame someone has stopped to look at, so playback
+    turns it off and pausing brings it back.
+    """
     head, btn = st.columns([3, 1])
     head.markdown(f"**📋 {title}**")
-    if not df.empty:
+    if not df.empty and excel:
         btn.download_button("📥 Excel", build_styled_excel(df, title),
                             file_name=f"{key}.xlsx", key=f"dl_{key}",
                             mime="application/vnd.openxmlformats-officedocument."
                                  "spreadsheetml.sheet",
                             use_container_width=True)
+    elif not df.empty:
+        btn.caption("📥 Excel on pause")
     st.dataframe(df, use_container_width=True, hide_index=True)
 
 
@@ -503,6 +518,13 @@ def render_tab_map(stat_type):
     Top row: what to size by, seconds between frames, max bubble size, play/pause.
     Then a year slider, the map, and the detail table for the year on screen.
 
+    The tab opens on the first year and Play walks it forward one year per
+    interval, so the whole series reads as one run. The year on screen is held
+    as an index in `map_year_idx`, deliberately *not* in the slider's own widget
+    key: a fragment auto-rerun re-sends the widget's frontend value, which would
+    overwrite the advance and freeze the animation. The slider is keyed on that
+    index so it is rebuilt at the new year each frame.
+
     **Bubble area is proportional to the value, on a scale fixed across all
     years.** Two decisions worth stating, because both change what the map means:
 
@@ -529,8 +551,13 @@ def render_tab_map(stat_type):
         return
 
     years = sorted(int(y) for y in df["YEAR"].unique())
-    if "map_year" not in st.session_state or st.session_state.map_year not in years:
-        st.session_state.map_year = years[-1]
+    # The authoritative position is an INDEX in a non-widget key. It must not be
+    # the slider's own key: on a fragment auto-rerun the widget re-sends its
+    # frontend value for its key, which would discard the advance and freeze the
+    # animation on whatever year was on screen.
+    if not isinstance(st.session_state.get("map_year_idx"), int) \
+            or not 0 <= st.session_state.map_year_idx < len(years):
+        st.session_state.map_year_idx = 0        # open on the first year
     st.session_state.setdefault("map_playing", False)
 
     c1, c2, c3, c4 = st.columns([3, 1.3, 1.2, 1.3])
@@ -541,7 +568,9 @@ def render_tab_map(stat_type):
              "the number of sales, so it reflects market size, which is what puts "
              "Auckland far ahead of everywhere else.")
     secs = c2.number_input("Seconds per year", min_value=1, max_value=30,
-                           value=5, step=1)
+                           value=1, step=1,
+                           help="One year per this many seconds. The whole "
+                                "1980-2026 series runs in about a minute at 1.")
     max_km = c3.number_input("Max bubble (km)", min_value=10, max_value=120,
                              value=45, step=5)
 
@@ -553,8 +582,8 @@ def render_tab_map(stat_type):
         if c4.button("Play", use_container_width=True,
                      icon=":material/play_arrow:"):
             # Starting on the last year would play nothing, so wrap to the start.
-            if st.session_state.map_year >= years[-1]:
-                st.session_state.map_year = years[0]
+            if st.session_state.map_year_idx >= len(years) - 1:
+                st.session_state.map_year_idx = 0
             st.session_state.map_playing = True
             st.session_state.map_last_tick = 0.0   # first frame draws at once
             st.rerun()
@@ -573,14 +602,22 @@ def render_tab_map(stat_type):
             now = time.monotonic()
             if now - st.session_state.get("map_last_tick", 0.0) >= int(secs) * 0.9:
                 st.session_state.map_last_tick = now
-                i = years.index(st.session_state.map_year)
-                if i + 1 < len(years):
-                    st.session_state.map_year = years[i + 1]
+                if st.session_state.map_year_idx + 1 < len(years):
+                    st.session_state.map_year_idx += 1
                 else:
                     st.session_state.map_playing = False   # stop at the last year
 
-        st.select_slider("Year", options=years, key="map_year")
-        year = st.session_state.map_year
+        # Keying the slider on the index re-creates it whenever the year moves,
+        # which is what lets `value=` take effect: a Streamlit widget keeps the
+        # state held against a *stable* key and ignores a changed `value`. A user
+        # drag comes back through the return value, and is written back to the
+        # index so the next frame carries on from where they left it.
+        idx = st.session_state.map_year_idx
+        picked = st.select_slider("Year", options=years, value=years[idx],
+                                  key=f"map_year_{idx}")
+        if picked != years[idx]:
+            st.session_state.map_year_idx = years.index(picked)
+        year = years[st.session_state.map_year_idx]
         d = df[(df["YEAR"] == year) & df[col].notna()].copy()
         if d.empty:
             st.info(f"No district prices published for {year}.")
@@ -647,7 +684,8 @@ def render_tab_map(stat_type):
             d[["TA_NAME", "REGION", "YEAR", "PERIOD_USED", "MEDIAN_PRICE",
                "SALES_YEAR", "EST_VALUE_YEAR", "HPI", "ANNUAL_CHANGE_PCT"]]
             .sort_values(col, ascending=False),
-            f"Districts in {year} - {stat_type}", "map_year_detail")
+            f"Districts in {year} - {stat_type}", "map_year_detail",
+            excel=not st.session_state.map_playing)
 
     _frame()
 
